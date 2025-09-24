@@ -12,7 +12,8 @@ func hello(w http.ResponseWriter, req *http.Request) {
 
 func main() {
 	// リクエストに対する処理の登録
-	http.HandleFunc("/", hello)
+	// 指定したdirectoryのファイルを返す
+	http.Handle("/", http.FileServer(http.Dir("static/")))
 	// HTTPサーバーを起動する関数で、ポート8080で受け付ける
 	err := http.ListenAndServe(":8080", nil)
 	if err != nil {
