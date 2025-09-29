@@ -1,53 +1,46 @@
 package main
 
 import (
-	"crypto/rand"
-	"encoding/base64"
-	"io"
 	"net/http"
 	"time"
 )
 
-const cookieSessionId = "sessionId"
+const CookieNameSessionId = "sessionId"
 
-// セッションが開始されていることを保証する
-//
-// セッションが存在しなければ、新しく発行する
-func ensureSession(w http.ResponseWriter, r *http.Request) (string, error) {
-	c, err := r.Cookie(cookieSessionId)
-	if err == http.ErrNoCookie {
-		sessionId, err := startSession(w)
-		return sessionId, err
-	}
-	if err == nil {
-		sessionId := c.Value
-		return sessionId, nil
-	}
-
-	return "", nil
+// セッション情報を保持する構造体
+type HttpSession struct {
+	// セッションID
+	SessionId string
+	// セッションの有効期限(時刻)
+	Expires time.Time
+	// Post-Redirect-Getでの遷移先に表示するデータ
+	PageData any
+	// ユーザアカウント情報への参照
+	UserAccount *UserAccount
 }
 
-func startSession(w http.ResponseWriter) (string, error) {
-	sessionId, err := createSessionId()
-	if err != nil {
-		return "", err
+// 新しいセッション情報を生成する。
+func NewHttpSession(sessionId string, validityTime time.Duration) *HttpSession {
+	session := &HttpSession{
+		SessionId: sessionId,
+		Expires:   time.Now().Add(validityTime),
+		PageData:  "",
 	}
+	return session
+}
+
+// ページデータを削除する。
+func (s *HttpSession) ClearPageData() {
+	s.PageData = ""
+}
+
+// セッションIDをCookieへ書き込む。
+func (s HttpSession) SetCookie(w http.ResponseWriter) {
 	cookie := &http.Cookie{
-		Name:     cookieSessionId,
-		Value:    sessionId,
-		Expires:  time.Now().Add(1800 * time.Second),
+		Name:     CookieNameSessionId,
+		Value:    s.SessionId,
+		Expires:  s.Expires,
 		HttpOnly: true,
 	}
 	http.SetCookie(w, cookie)
-
-	return sessionId, nil
-}
-
-func createSessionId() (string, error) {
-	randBytes := make([]byte, 16)
-	if _, err := io.ReadFull(rand.Reader, randBytes); err != nil {
-		return "", err
-	}
-
-	return base64.URLEncoding.WithPadding(base64.NoPadding).EncodeToString(randBytes), nil
 }
