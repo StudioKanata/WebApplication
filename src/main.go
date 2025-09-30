@@ -4,8 +4,11 @@ import (
 	"errors"
 	"fmt"
 	"html/template"
+	"log"
+	"math/rand"
 	"net/http"
 	"os"
+	"strconv"
 )
 
 var (
@@ -17,7 +20,7 @@ var (
 )
 
 func main() {
-	sessionManager = NewHttpSessionManager()
+	sessionManager = NewHttpSessionManager(getSessionSecret(), getSecureCookie())
 
 	accountManager = NewUserAccountManager()
 
@@ -38,6 +41,8 @@ func main() {
 	http.HandleFunc("/todo", handleTodo)
 
 	http.HandleFunc("/add", handleAdd)
+
+	http.HandleFunc("/edit", handleEdit)
 
 	http.HandleFunc("/favicon.ico", handleNotFound)
 
@@ -80,6 +85,13 @@ func writeInternalServerError(w http.ResponseWriter, err error) {
 	w.Write([]byte(msg))
 }
 
+// SECURE_COOKIE環境変数が設定されているかチェックする。
+//
+// yesに設定されている場合、発行するCookieにsecure属性を付与する。
+func getSecureCookie() bool {
+	return os.Getenv("SECURE_COOKIE") == "yes"
+}
+
 // ログイン済みかどうかを調べる。
 //
 // ログイン済みでない場合はログイン画面へ遷移する。
@@ -88,10 +100,40 @@ func isAuthenticated(w http.ResponseWriter, r *http.Request, session *HttpSessio
 		return true
 	}
 
+	log.Printf("not authenticated %s", session.SessionId)
+
 	page := LoginPageData{}
 	page.ErrorMessage = "未ログインです。"
 	session.PageData = page
 
 	http.Redirect(w, r, "/login", http.StatusSeeOther)
 	return false
+}
+
+// セッションID検証用のシークレットを返す。
+//
+// 環境変数 SESSION_SECRET で指定されていれば、そちらを優先する。
+func getSessionSecret() uint64 {
+	secretStr := os.Getenv("SESSION_SECRET")
+	if secretStr != "" {
+		if secretInt, err := strconv.Atoi(secretStr); err == nil {
+			return uint64(secretInt)
+		}
+	}
+	return rand.Uint64()
+}
+
+// リクエストをログに記録する。
+func logRequest(r *http.Request, session *HttpSession) {
+	var logMsg string
+	if session != nil {
+		var userId string
+		if session.UserAccount != nil {
+			userId = session.UserAccount.Id
+		}
+		logMsg = fmt.Sprintf("%s %s %s %s", r.Method, r.RequestURI, session.SessionId, userId)
+	} else {
+		logMsg = fmt.Sprintf("%s %s", r.Method, r.RequestURI)
+	}
+	log.Println(logMsg)
 }

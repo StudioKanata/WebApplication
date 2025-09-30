@@ -23,7 +23,7 @@ type UserAccount struct {
 	// アカウントの有効期限
 	Expires time.Time
 	// ToDoリスト
-	ToDoList []string
+	ToDoList *ToDoList
 }
 
 // ユーザアカウント情報を生成する。
@@ -34,7 +34,7 @@ func NewUserAccount(userId string, plainPassword string, expires time.Time) *Use
 		Id:             userId,
 		HashedPassword: string(hashedPassword),
 		Expires:        expires,
-		ToDoList:       make([]string, 0, 10),
+		ToDoList:       NewToDoList(),
 	}
 	return account
 }
