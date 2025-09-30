@@ -2,32 +2,29 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8" />
-    <title>Tiny ToDo</title>
+    <title>ToDo List</title>
     <link rel="stylesheet" href="static/todo.css" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script defer src="static/todo.js"></script>
 </head>
 <body>
 <header>
-    <h1>Tiny ToDo</h1>
-    <div class="info">
-        <span id="info-version">User management version</span>
-        <span id="info-account">User : {{ .UserId }} / Expires : {{ .Expires }}</span>
-        <form id="logout" method="post" action="/logout">
-            <button type="submit">Logout</button>
-        </form>
-    </div>
+    <h1>ToDo List</h1>
 </header>
 <main>
-    <form class="new-todo" method="post" action="/add">
-        <input type="text" name="todo" placeholder="Add a new ToDo" />
+    <form method="post" action="add"> <!--1-->
+        <input type="text" class="new-todo" name="todo" placeholder="Add a new todo" />
         <button type="submit">Add</button>
     </form>
     <ul class="todo-list">
-        {{range .ToDoList}}
+        {{range .}}
         <li class="todo-item">
-            <div class="todo-item-left">
+            <div class="todo-item-container">
                 <input type="checkbox" />
-                <span>{{.}}</span>
+                <input type="text" class="todo" value="{{.}}" readonly />
+                <div class="todo-item-control hidden">
+                    <button class="btn-save">save</button>
+                    <button class="btn-cancel">cancel</button>
+                </div>
             </div>
         </li>
         {{end}}
